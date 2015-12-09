@@ -1,0 +1,17 @@
+#!/bin/bash
+
+echo "Enter units (sec, min, hour, etc. Default: min)"
+read unit
+if [ ${#unit} -eq 0 ]; then
+	unit="min"
+fi
+factor=`units $unit sec | sed -En "s/.*[*]{1} ([0-9\.]+)/\1/p"`
+echo "Press <Enter> to start"
+read
+start=`date "+%s"`
+echo "Press <Enter> to stop"
+read
+end=`date "+%s"`
+nmins=`echo "scale=4; ($end-$start)/$factor" | bc -l`
+
+echo "Time elapsed: $nmins $unit"

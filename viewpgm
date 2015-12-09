@@ -1,0 +1,22 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+	echo -e "\nUsage: viewpgm [ang directory number]"
+	echo " - downloads and opens the pgm model directory for the given angle grid position"
+	echo ""
+	exit
+fi
+
+remotedir=$1
+localdir=${remotedir##*/}
+
+if [ -e $localdir ]; then
+	rm $localdir/*.pgm
+else
+	mkdir $localdir
+fi
+
+scp -r "thalia:$remotedir/*" $localdir
+open $localdir/*.pgm
+
+printf "\a"

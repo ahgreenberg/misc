@@ -1,0 +1,102 @@
+import pyfits as pf
+import copy as cp
+import numpy as np
+import matplotlib.pyplot as plt
+
+AND = np.logical_and
+
+def shift(data,shiftdirection = "center"):
+	numshifts = {"right":1,"left":1,"up":1,"down":1}
+	
+	shiftfuncs = {
+		"right": lambda arr:np.hstack((zerocol(outarr),outarr)),
+		"left": lambda arr: np.hstack((outarr,zerocol(outarr))),
+		"up": lambda arr: np.vstack((outarr,zerorow(outarr))),
+		"down": lambda arr: np.vstack((zerorow(outarr),outarr))
+	}
+
+	directionpairs =  \
+		{"right":"left","left":"right","up":"down","down":"up"}
+			
+	if shiftdirection != "center":
+		numshifts[shiftdirection] += 1
+		numshifts[directionpairs[shiftdirection]] -= 1
+
+	outarr = cp.deepcopy(data)
+	zerocol = lambda arr: np.zeros((arr.shape[0],1))
+	zerorow = lambda arr: np.zeros((1,arr.shape[1]))
+
+	for direction in numshifts.keys():
+		for numtimes in xrange(numshifts[direction]):
+			outarr = shiftfuncs[direction](outarr)
+
+	return outarr
+
+filename = "./keckdata_orig/n0058.fits"
+
+fits = pf.open(filename,ignore_missing_end=True)
+data = fits[0].data
+dl1 = np.hstack((data,np.zeros((data.shape[0],1))))
+
+"""
+data = np.ones((5,5))
+data[3][2] = 10
+"""
+mn = np.mean(data)
+std = np.std(data)
+
+print 'std ',std
+print 'mn ',mn
+
+threshold = mn + 2*std
+
+
+datapadded = shift(data,"center")
+M = (datapadded > threshold)
+
+sup = shift(data,"up") 
+sdown = shift(data,"down") 
+sleft = shift(data,"left") 
+sright = shift(data,"right") 
+
+localmean = (sup+sdown+sleft+sright)/4.
+
+M1 = (sup > threshold)
+M2 = (sdown > threshold)
+M3 = (sleft > threshold)
+M4 = (sright > threshold)
+
+Ms = [np.logical_xor(M,M1),np.logical_xor(M,M2),np.logical_xor(M,M3),np.logical_xor(M,M4)]
+
+
+hotpix = np.array(np.ones(datapadded.shape),dtype = np.bool_)
+for mask in Ms:
+	print 'mask ',mask
+	hotpix = np.logical_and(hotpix,mask)
+
+"""
+plt.subplot(2,1,1)
+plt.imshow(datapadded)
+plt.subplot(2,1,2)
+plt.imshow(hotpix)
+plt.show()
+"""
+print 'hotpix ',hotpix
+print 'hotpix.nonzero() ',hotpix.nonzero()
+
+print 'data[467][421] ',data[421][467]
+
+print 'data[467][421] ',data[422][467]
+print 'data[467][421] ',data[420][467]
+print 'data[467][421] ',data[421][468]
+print 'data[467][421] ',data[421][466]
+
+hotxs,hotys = hotpix.nonzero()
+
+for x,y in zip(hotxs,hotys):
+	if hotpix[x][y]:
+		data[x-1][y-1] = mn#localmean[x][y]
+
+fits[0].data = data
+
+fits.writeto("./test1.fits", clobber = True)

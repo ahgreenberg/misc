@@ -1,0 +1,35 @@
+#!/usr/bin/python
+
+import math as m
+import random as rd
+import sys
+
+rd.seed()
+
+if len(sys.argv) != 4:
+	print "Usage: powpractice [lower limit] [upper limit] [n]"
+	sys.exit()
+
+lower = int(sys.argv[1])
+upper = int(sys.argv[2])
+n = int(sys.argv[3])
+
+num = int(lower + rd.random()*(upper-lower))
+ans = pow(num,1./n)
+
+
+print "Your number is: ",num,"\n"
+
+showans = False
+while not showans:
+	userans = float(raw_input( "What is {}^(1/{}) ?".format(num,n)))
+	showacc = True if raw_input( "Display accuracy (y,n)? ").upper() == "Y" else False
+
+	if showacc:
+		print "Range accuracy is ",round( abs(userans - ans)*100/ans , 2),"%"
+		print "Domain accuracy is ",round( abs( pow(userans,n) - num)*100/num , 2),"%"
+
+	showans = True if raw_input( "Show answer (y,n)? ").upper() == "Y" else False
+
+	if showans:
+		print "{}^(1/{}) = {}".format(num,n, round( ans, 4))

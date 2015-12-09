@@ -1,0 +1,64 @@
+#!/bin/bash
+
+if [ $# -lt 1 ]; then
+	printf "\nUsage: stats [delimiter] [col1] [col2] ... [colN]\n"
+	printf " - gives stats for supplied columns\n\n"
+	exit
+fi
+
+function sum {
+	out=0
+	for val in $@; do
+		out=`echo "$out+$val" | bc -l`
+	done
+	echo $out
+}
+
+function mean {
+	total=`sum $@`
+	out=`echo "scale=6; $total/$#" | bc -l`
+	echo $out
+}
+
+function std {
+	out=0
+	avg=`mean $@`
+	for val in $@; do
+		out=`echo "$out+($val-$avg)^2" | bc -l`
+	done
+	out=`echo "scale=6; sqrt($out/$#)" | bc -l`
+	echo $out
+}
+
+function min {
+	out=$1
+	for val in ${@:2}; do
+		if [ `echo "$val < $out" | bc -l` == 1 ]; then
+			out=$val
+		fi
+	done
+	echo $out
+}
+
+function max {
+	out=$1
+	for val in ${@:2}; do
+		if [ `echo "$val > $out" | bc -l` == 1 ]; then
+			out=$val
+		fi
+	done
+	echo $out
+}
+	
+
+delim=$1
+data=`cat`
+
+for ncol in ${@:2}; do
+	vals=`printf "$data" | cut -d "$delim" -f $ncol`
+	printf "col $ncol\n"
+	printf "  mean\t`mean $vals`\n"
+	printf "  std\t`std $vals`\n"
+	printf "  min\t`min $vals`\n"
+	printf "  max\t`max $vals`\n"
+done

@@ -1,0 +1,50 @@
+#!/bin/bash
+
+
+DS9ARGS="-scale squared -zoom 2 -lock scale yes" #-cmap Aips0"
+DS9=""
+scplog=scplog
+
+if [ $# -ne 2 -a $# -ne 3 ]; then
+	echo -e "\nUsage: viewfits [remote fits dir on Thalia] [local directory] [list of specific files]\n"
+	echo " - if you only want to view the files in localdir, have the first argument be ."
+	echo -e " - the list of specific files should end .mod.fits\n"
+	exit
+fi
+
+remotedir=$1
+localdir=$2
+
+
+if [ $remotedir != . ]; then
+	if [ -e $localdir ]; then
+		rm $localdir/*.fits
+	else
+		mkdir $localdir
+	fi
+	echo -e "\nTransferring files from thalia (this might take a few minutes)..."
+	scp -v -r thalia:"$remotedir/*.fits" $localdir &> $scplog || exit
+	echo -e "\tdone transferring $((`grep -a "^Sink.*fits$" $scplog | wc -l`)) files\n"
+fi
+
+
+echo -e "Opening file groups with DS9"
+echo -e "\t<Enter> to open next file group"
+echo -e "\t<C-c> to exit"
+
+fitslist=""
+if [ $# -eq 2 ]; then
+	fitslist=`ls -1 $localdir/*.mod.fits`
+else
+	for file in `cat $3`; do
+		fitslist+=" $localdir/$file"
+	done
+fi
+
+printf "\a"
+
+for filepath in $fitslist; do
+	root=${filepath%.*.fits}
+	open -a /Applications/SAOImage\ DS9.app/ --args $DS9ARGS $root*.fits &
+	read
+done

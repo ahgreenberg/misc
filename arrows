@@ -1,0 +1,58 @@
+#!/Users/adamhgreenberg/anaconda/bin/python
+
+import numpy as np
+import sys
+import matplotlib.pyplot as plt
+
+vals = np.loadtxt("/tmp/newangs")[:,2:]
+xs,ys,chis = vals[:,0],vals[:,1],vals[:,2]
+ 
+vs = sorted(chis)
+firstdiv = 4
+seconddiv = -4
+lowres = 30
+V1 = vs[:firstdiv:1] + vs[firstdiv:seconddiv:lowres] + vs[seconddiv::1]
+
+print 'V1 ',V1
+V = np.linspace(min(chis),max(chis),500)
+
+plt.tricontourf(xs,ys,chis,V1)
+
+if len(sys.argv) != 1 and len(sys.argv) != 5:
+	print "Usage: arrows [xmin] [xmax] [ymin] [ymax]"
+	print " - x and y limits are optional"
+	print " - writes arrows to arrows.png"
+	sys.exit()
+
+
+ang0s_old,ang1s_old,ang0s_new,ang1s_new,arrowchis  = np.loadtxt("/tmp/newangs",unpack=True)
+print arrowchis
+
+chi2headlen = lambda chi: (1./(abs(min(arrowchis)-chi)+0.001))**8*1E-22
+
+
+for old0,old1,new0,new1,achi in zip(ang0s_old,ang1s_old,ang0s_new,ang1s_new, arrowchis):
+	offset0 = new0-old0
+	offset1 = new1-old1
+	print chi2headlen(achi)
+	if 100 > abs(offset0) > 0.0 and 100 > abs(offset1) > 0.0:
+		plt.arrow(old0,old1,offset0,offset1, head_width=1.5, head_length=1.5, ec="r", fc="r", length_includes_head=True)
+		print old0,old1,new0,new1
+
+xmin=float(sys.argv[1]) if len(sys.argv)==5 else np.min((np.min(ang0s_old),np.min(ang0s_new)))
+xmax=float(sys.argv[2]) if len(sys.argv)==5 else np.max((np.min(ang0s_old),np.max(ang0s_new)))
+ymin=float(sys.argv[3]) if len(sys.argv)==5 else np.min((np.max(ang1s_old),np.min(ang1s_new)))
+ymax=float(sys.argv[4]) if len(sys.argv)==5 else np.max((np.max(ang1s_old),np.max(ang1s_new)))
+
+xmin=0
+xmax=360
+ymin=0
+ymax=180
+
+
+for x in chi2headlen(arrowchis):
+	print "{:f}".format(x)
+#plt.scatter(ang0s_new,ang1s_new, s=chi2headlen(arrowchis),color="w",alpha=0.5)
+plt.xlim((xmin,xmax))
+plt.ylim((ymin,ymax))
+plt.savefig("ang2.png")
